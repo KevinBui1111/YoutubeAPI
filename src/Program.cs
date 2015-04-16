@@ -6,6 +6,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Google.Apis.YouTube.v3.Data;
+using YoutubeAPI.Properties;
 
 namespace YoutubeAPI
 {
@@ -29,7 +31,7 @@ namespace YoutubeAPI
             try
             {
                 var search = new Program();
-                var vids = search.GetUploadVids();
+                search.GetUploadVids();
             }
             catch (AggregateException ex)
             {
@@ -44,7 +46,7 @@ namespace YoutubeAPI
         }
 
         YouTubeService youtubeService;
-        List<string> vidInfos;
+        List<Video> vidInfos;
 
         public Program()
         {
@@ -53,18 +55,18 @@ namespace YoutubeAPI
                 ApiKey = "AIzaSyCrv5oNZ5x8TfIpQ5yeaoz1VSBNPwRQdqg",
                 ApplicationName = this.GetType().ToString()
             });
-            vidInfos = new List<string>();
+            vidInfos = new List<Video>();
         }
 
-        private string[] GetUploadVids()
+        private void GetUploadVids()
         {
             var begin = DateTime.Now;
 
             //return null;
             List<string> vids = new List<string>();
 
-            var channelsListRequest = youtubeService.Channels.List("contentDetails");
-            channelsListRequest.Id = "UCuN9yuqJWM6CeqqUKPFckhA";
+            var channelsListRequest = youtubeService.Channels.List("contentDetails,snippet");
+            channelsListRequest.Id = "UCvCg3YaEvIv0MtnKbienA-w";
             //channelsListRequest.Mine = true;
 
             // Retrieve the contentDetails part of the channel resource for the authenticated user's channel.
@@ -103,20 +105,23 @@ namespace YoutubeAPI
             }
 
             Console.WriteLine("Total {0} videos, distinct {1}", vids.Count, vids.Distinct().Count());
-
-            File.WriteAllText("vid list.txt", string.Join("\r\n", vids));
-
             Console.WriteLine((DateTime.Now - begin).TotalSeconds);
 
             begin = DateTime.Now;
             Task.WaitAll(tasklist.ToArray());
             Console.WriteLine((DateTime.Now - begin).TotalSeconds);
 
-            File.WriteAllText("view count.txt", string.Join("\r\n", vidInfos));
+            StringBuilder htmlpage = new StringBuilder();
+            foreach (var vid in vidInfos)
+            {
+                htmlpage.AppendFormat(Resources.item_template, vid.Id, vid.Snippet.Title, vid.Statistics.ViewCount, vid.Snippet.PublishedAt.ToHumanDate())
+                    .AppendLine();
+            }
 
-            return vids.ToArray();
+            File.WriteAllText(string.Format("vidchannel - {0}.html", channel.Snippet.Title)
+                             ,string.Format(Resources.body_template, channel.Id, channel.Snippet.Title, htmlpage.ToString()));
         }
-        private IEnumerable<string> GetVidsInfo(IEnumerable<string> vids)
+        private IEnumerable<Video> GetVidsInfo(IEnumerable<string> vids)
         {
             List<string> vidcount = new List<string>();
 
@@ -126,10 +131,10 @@ namespace YoutubeAPI
             // Retrieve the list of videos uploaded to the authenticated user's channel.
             var playlistItemsListResponse = playlistItemsListRequest.Execute();
 
-            return playlistItemsListResponse.Items.Select(p => p.Id + "\t" + p.Statistics.ViewCount + "\t" + p.Snippet.Title);
+            return playlistItemsListResponse.Items;//.Select(p => p.Id + "\t" + p.Statistics.ViewCount + "\t" + p.Snippet.Title);
         }
 
-        private void completeGetVidInfo(IEnumerable<string> vids)
+        private void completeGetVidInfo(IEnumerable<Video> vids)
         {
             vidInfos.AddRange(vids);
         }
