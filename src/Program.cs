@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.IO;
 using Google.Apis.YouTube.v3.Data;
 using YoutubeAPI.Properties;
+using System.Net;
 
 namespace YoutubeAPI
 {
@@ -28,10 +29,13 @@ namespace YoutubeAPI
             Console.WriteLine("YouTube Data API: Search");
             Console.WriteLine("========================");
 
+            Console.Write("Input channel ID: ");
+            var channelID = Console.ReadLine();
+
             try
             {
                 var search = new Program();
-                search.GetUploadVids();
+                search.GetUploadVids(channelID);
             }
             catch (AggregateException ex)
             {
@@ -41,12 +45,13 @@ namespace YoutubeAPI
                 }
             }
 
-            Console.WriteLine("Press any key to continue...");
+            Console.WriteLine("Finish. Press any key to continue...");
             Console.ReadKey();
         }
 
         YouTubeService youtubeService;
         List<Video> vidInfos;
+        const string saveFolder = @"f:\Downloads\Video\YDL\_channels\";
 
         public Program()
         {
@@ -58,7 +63,7 @@ namespace YoutubeAPI
             vidInfos = new List<Video>();
         }
 
-        private void GetUploadVids()
+        private void GetUploadVids(string channelID)
         {
             var begin = DateTime.Now;
 
@@ -66,7 +71,7 @@ namespace YoutubeAPI
             List<string> vids = new List<string>();
 
             var channelsListRequest = youtubeService.Channels.List("contentDetails,snippet");
-            channelsListRequest.Id = "UCvCg3YaEvIv0MtnKbienA-w";
+            channelsListRequest.Id = channelID;
             //channelsListRequest.Mine = true;
 
             // Retrieve the contentDetails part of the channel resource for the authenticated user's channel.
@@ -105,21 +110,33 @@ namespace YoutubeAPI
             }
 
             Console.WriteLine("Total {0} videos, distinct {1}", vids.Count, vids.Distinct().Count());
-            Console.WriteLine((DateTime.Now - begin).TotalSeconds);
 
-            begin = DateTime.Now;
             Task.WaitAll(tasklist.ToArray());
-            Console.WriteLine((DateTime.Now - begin).TotalSeconds);
+
+            desFolder = saveFolder + channel.Snippet.Title;
+            string thumbFormat = channel.Snippet.Title + "/{0}.jpg";
 
             StringBuilder htmlpage = new StringBuilder();
             foreach (var vid in vidInfos)
             {
-                htmlpage.AppendFormat(Resources.item_template, vid.Id, vid.Snippet.Title, vid.Statistics.ViewCount, vid.Snippet.PublishedAt.ToHumanDate())
+                string thumbUrl = string.Format(thumbFormat, vid.Id);
+                htmlpage.AppendFormat(Resources.item_template, thumbUrl, vid.Id, vid.Snippet.Title, vid.Statistics.ViewCount.Value.ToString("#,#"), vid.Snippet.PublishedAt.ToHumanDate())
                     .AppendLine();
             }
 
-            File.WriteAllText(string.Format("vidchannel - {0}.html", channel.Snippet.Title)
+            File.WriteAllText(string.Format(saveFolder + "\\{0}.html", channel.Snippet.Title)
                              ,string.Format(Resources.body_template, channel.Id, channel.Snippet.Title, htmlpage.ToString()));
+
+            Console.WriteLine((DateTime.Now - begin).TotalSeconds);
+
+            Console.WriteLine("Downloading thumbnail...");
+            begin = DateTime.Now;
+            // Download thumbnail
+            if (!Directory.Exists(desFolder))
+                Directory.CreateDirectory(desFolder);
+
+            var res = Parallel.ForEach(vidInfos, (Action<Video>)DownImage);
+            Console.WriteLine((DateTime.Now - begin).TotalSeconds);
         }
         private IEnumerable<Video> GetVidsInfo(IEnumerable<string> vids)
         {
@@ -137,6 +154,33 @@ namespace YoutubeAPI
         private void completeGetVidInfo(IEnumerable<Video> vids)
         {
             vidInfos.AddRange(vids);
+        }
+
+        string desFolder;
+        const string thumbnailURL = "https://i.ytimg.com/vi/{0}/mqdefault.jpg";
+        const string thumbnailFormatPath = "https://i.ytimg.com/vi/{0}/mqdefault.jpg";
+
+        public void DownImage(Video vid)
+        {
+            var stream = DownloadURL(string.Format(thumbnailURL, vid.Id));
+            if (stream == null) return;
+
+            using (Stream destination = File.Create(desFolder + "\\" + vid.Id + ".jpg"))
+                stream.CopyTo(destination);
+        }
+        public Stream DownloadURL(string url)
+        {
+            try
+            {
+                WebRequest req = WebRequest.Create(url);
+                WebResponse response = req.GetResponse();
+                return response.GetResponseStream();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(url + " - " + ex.Message);
+                return null;
+            }
         }
     }
 }

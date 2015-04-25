@@ -86,13 +86,9 @@ namespace YoutubeAPI.Properties {
         
         /// <summary>
         ///   Looks up a localized string similar to         &lt;li class=&quot;vidItem&quot;&gt;
-        ///            &lt;div&gt;
-        ///                &lt;img src=&quot;https://i.ytimg.com/vi/{0}/mqdefault.jpg&quot;&gt;
-        ///            &lt;/div&gt;
-        ///            &lt;div&gt;
-        ///                &lt;a href=&quot;https://www.youtube.com/watch?v={0}&quot; class=&quot;title&quot; target=&quot;_blank&quot;&gt;{1}&lt;/a&gt;
-        ///                &lt;span class=&quot;view&quot;&gt;{2} views - {3}&lt;/span&gt;
-        ///            &lt;/div&gt;
+        ///            &lt;img src=&quot;{0}&quot;&gt;
+        ///            &lt;a href=&quot;https://www.youtube.com/watch?v={1}&quot; class=&quot;title&quot; target=&quot;_blank&quot;&gt;{2}&lt;/a&gt;
+        ///            &lt;span class=&quot;view&quot;&gt;{3} views - {4}&lt;/span&gt;
         ///        &lt;/li&gt;.
         /// </summary>
         internal static string item_template {

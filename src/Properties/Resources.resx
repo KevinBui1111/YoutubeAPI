@@ -137,7 +137,7 @@
             margin:5px;
         }}
         img {{
-            width: 196px;
+            width: inherit;
         }}
         .title {{
             overflow:hidden;
@@ -172,13 +172,9 @@
   </data>
   <data name="item_template" xml:space="preserve">
     <value>        &lt;li class="vidItem"&gt;
-            &lt;div&gt;
-                &lt;img src="https://i.ytimg.com/vi/{0}/mqdefault.jpg"&gt;
-            &lt;/div&gt;
-            &lt;div&gt;
-                &lt;a href="https://www.youtube.com/watch?v={0}" class="title" target="_blank"&gt;{1}&lt;/a&gt;
-                &lt;span class="view"&gt;{2} views - {3}&lt;/span&gt;
-            &lt;/div&gt;
+            &lt;img src="{0}"&gt;
+            &lt;a href="https://www.youtube.com/watch?v={1}" class="title" target="_blank"&gt;{2}&lt;/a&gt;
+            &lt;span class="view"&gt;{3} views - {4}&lt;/span&gt;
         &lt;/li&gt;</value>
   </data>
 </root>
