@@ -85,6 +85,43 @@ namespace YoutubeAPI.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &lt;tr&gt;
+        ///	&lt;td&gt;&lt;img src=&quot;{5}&quot; /&gt;&lt;/td&gt;
+        ///	&lt;td&gt;&lt;a href=&quot;https://www.youtube.com/channel/{4}/videos&quot; target=&quot;_blank&quot;&gt;&lt;b&gt;{0}&lt;/b&gt;&lt;/a&gt;&lt;/td&gt;
+        ///	&lt;td&gt;{1:n0}&lt;/td&gt;
+        ///	&lt;td&gt;{2:n0}&lt;/td&gt;
+        ///	&lt;td&gt;{3:n0}&lt;/td&gt;
+        ///	&lt;td&gt;{4}&lt;/td&gt;
+        ///&lt;/tr&gt;.
+        /// </summary>
+        internal static string channel_template {
+            get {
+                return ResourceManager.GetString("channel_template", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &lt;!DOCTYPE html&gt;
+        ///&lt;html&gt;
+        ///    &lt;head&gt;
+        ///		&lt;meta charset=&quot;utf-8&quot;&gt;
+        ///        &lt;title&gt;My Trans&lt;/title&gt;
+        ///
+        ///        &lt;script src=&quot;https://code.jquery.com/jquery-2.2.0.min.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+        ///        &lt;script src=&quot;https://cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+        ///        &lt;link href=&quot;https://cdn.datatables.net/1.10.10/css/jquery.dataTables.min.css&quot; rel=&quot;stylesheet&quot; type=&quot;text/css&quot;&gt;
+        ///
+        ///        &lt;style type=&quot;text/css&quot;&gt;
+        ///            body {{
+        ///                fo [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string channelwrapper_template {
+            get {
+                return ResourceManager.GetString("channelwrapper_template", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to         &lt;li class=&quot;vidItem&quot;&gt;
         ///            &lt;img src=&quot;{0}&quot;&gt;
         ///            &lt;a href=&quot;https://www.youtube.com/watch?v={1}&quot; class=&quot;title&quot; target=&quot;_blank&quot;&gt;{2}&lt;/a&gt;
@@ -94,6 +131,15 @@ namespace YoutubeAPI.Properties {
         internal static string item_template {
             get {
                 return ResourceManager.GetString("item_template", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to STqIKwWZnTI,Ngza3XCB4wU,NIJfKuTuNIk,RAfEaaaDdbI,nwb7FknFWjA,h6oaW7AkU3Q,y84BWL18VlQ,D57HxN2IceY,IStY-SnSxo8,725vjOxeHHk,eKQiRAVxaIY,IzxmKD2Gqcw,u_EcjtkuDyg,Fwc6t9J7G0M,HKExaB_D2x4,wOZRbc_nwyA,Zp_PhnYVxnc,tjx9abHUbOY,AuG33AWkACo,nBbNz6-0IbE,n0SFMUfS3XM,3QSlqcEoJg0,DYjHbfDGXeU,nQuasjt0Kgs,z88guwEZQ0k,Z0-op82TjQA,bLHl_fYbBaE,4r4Rj6cmItE,9BNs_6QIwlA,-K6fhhnO9l8,v6QlJDz5Fzo,dDevMzBHne8,0dvGhdGxWSY,QDT07mlp_Ic,YxULTBM9SXE,HhuYNVO4nDw,jcbRJ2DdCNc,7hUsEIehYCg,ccxWMDvoyDw,HGyfb_60bwg,IbyVUKZlSYE,bnCVY2qLkNs,DamDVWq2 [rest of string was truncated]&quot;;.
+        /// </summary>
+        internal static string vidlist {
+            get {
+                return ResourceManager.GetString("vidlist", resourceCulture);
             }
         }
     }

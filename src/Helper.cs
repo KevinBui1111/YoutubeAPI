@@ -89,6 +89,26 @@ using System.Net;
 
             return string.Format("{0} years ago", now.Year - d.Year);
         }
+        public static IEnumerable<T[]> Chunkify<T>(this T[] source, int size)
+        {
+            int remain = source.Length;
+            int i = 0;
+            T[] chunk = null;
+
+            foreach (T item in source)
+            {
+                if (i == 0) chunk = new T[size < remain ? size : remain];
+
+                chunk[i++] = item;
+                --remain;
+
+                if (i == size || remain == 0)
+                {
+                    i = 0;
+                    yield return chunk;
+                }
+            }
+        }
     }
     public class Helper
     {

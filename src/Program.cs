@@ -9,6 +9,9 @@ using System.IO;
 using Google.Apis.YouTube.v3.Data;
 using YoutubeAPI.Properties;
 using System.Net;
+using Google.Apis.Auth.OAuth2;
+using System.Threading;
+using Google.Apis.Util.Store;
 
 namespace YoutubeAPI
 {
@@ -26,16 +29,12 @@ namespace YoutubeAPI
         [STAThread]
         static void Main(string[] args)
         {
-            Console.WriteLine("YouTube Data API: Search");
-            Console.WriteLine("========================");
-
-            Console.Write("Input channel ID: ");
-            var channelID = Console.ReadLine();
-
             try
             {
                 var search = new Program();
-                search.GetUploadVids(channelID);
+                //search.GetVidsTitle_Wrapper(Resources.vidlist.Split(','));
+                search.GetUploadVids();
+                //search.GetSubscriptions();
             }
             catch (AggregateException ex)
             {
@@ -51,20 +50,115 @@ namespace YoutubeAPI
 
         YouTubeService youtubeService;
         List<Video> vidInfos;
-        const string saveFolder = @"f:\Downloads\Video\YDL\_channels\";
+        const string saveFolder = @"D:\Downloads\Video\YDL\_channels\";
 
         public Program()
         {
+            UserCredential credential;
+            using (var stream = new FileStream("client_secrets.json", FileMode.Open, FileAccess.Read))
+            {
+                Task<UserCredential> t = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    GoogleClientSecrets.Load(stream).Secrets,
+                    // This OAuth 2.0 access scope allows for read-only access to the authenticated 
+                    // user's account, but not other types of account access.
+                    new[] { YouTubeService.Scope.YoutubeReadonly },
+                    "user",
+                    CancellationToken.None,
+                    new FileDataStore("oauth")
+                );
+                t.Wait();
+                credential = t.Result;
+            }
+
             youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
-                ApiKey = "AIzaSyCrv5oNZ5x8TfIpQ5yeaoz1VSBNPwRQdqg",
+                //ApiKey = "AIzaSyCrv5oNZ5x8TfIpQ5yeaoz1VSBNPwRQdqg",
+                HttpClientInitializer = credential,
                 ApplicationName = this.GetType().ToString()
             });
+
             vidInfos = new List<Video>();
         }
 
-        private void GetUploadVids(string channelID)
+        List<Channel> channels = new List<Channel>();
+        private void GetSubscriptions()
         {
+            
+            List<Task> tasklist = new List<Task>();
+
+            var nextPageToken = "";
+            while (nextPageToken != null)
+            {
+                var request = youtubeService.Subscriptions.List("snippet");
+                request.Mine = true;
+                request.MaxResults = 50;
+                request.PageToken = nextPageToken;
+
+                var response = request.Execute();
+                var listchannel = response.Items.Select(i => new Channel
+                {
+                    title = i.Snippet.Title,
+                    channelId = i.Snippet.ResourceId.ChannelId,
+                    thumbnail = i.Snippet.Thumbnails.Default__.Url
+                }).ToArray();
+                channels.AddRange(listchannel);
+                nextPageToken = response.NextPageToken;
+
+                GetChannelInfo(listchannel);
+                //tasklist.Add(Task.Factory.StartNew(() => { GetChannelInfo(listchannel); }));
+            }
+
+            Task.WaitAll(tasklist.ToArray());
+
+            //channels.Sort((a, b) => b.subscriberCount.CompareTo(a.subscriberCount));
+
+            StringBuilder channel_part = new StringBuilder();
+            foreach (var vid in channels)
+                channel_part.AppendFormat(Resources.channel_template, vid.title, vid.subscriberCount, vid.viewCount, vid.videoCount, vid.channelId, vid.thumbnail)
+                    .AppendLine();
+
+            File.WriteAllText("my_channels.html"
+                             , string.Format(Resources.channelwrapper_template, channel_part));
+
+            //foreach (Channel c in channels)
+            //    Console.WriteLine("\t{0}\t{1:n0}\t{2:n0}", c.title, c.viewCount, c.subscriberCount);
+        }
+        private void GetChannelInfo(IEnumerable<Channel> vids)
+        {
+            List<string> vidcount = new List<string>();
+
+            var request = youtubeService.Channels.List("statistics");
+            request.Id = string.Join(",", vids.Select(c => c.channelId));
+
+            // Retrieve the list of videos uploaded to the authenticated user's channel.
+            var response = request.Execute();
+
+            var pairs = from s in vids
+                       join d in response.Items
+                           on s.channelId equals d.Id
+                       select new { s, d };
+
+            foreach (var pair in pairs)
+            {
+                pair.s.videoCount = pair.d.Statistics.VideoCount.Value;
+                pair.s.viewCount = pair.d.Statistics.ViewCount.Value;
+                pair.s.subscriberCount = pair.d.Statistics.SubscriberCount.Value;
+            };
+        }
+
+        private void GetUploadVids()
+        {
+            //==================== INPUT ===========================
+            Console.WriteLine("YouTube Data API: Search");
+            Console.WriteLine("========================");
+
+            Console.Write("Input channel ID: ");
+            var channelID = Console.ReadLine();
+
+            Console.Write("Stop video ID: ");
+            var stop_at_vid = Console.ReadLine();
+            //=======================================================
+
             var begin = DateTime.Now;
 
             //return null;
@@ -106,7 +200,10 @@ namespace YoutubeAPI
                         .ContinueWith(t => completeGetVidInfo(t.Result), TaskScheduler.Current)
                     );
 
-                nextPageToken = playlistItemsListResponse.NextPageToken;
+                if (vidIDs.Contains(stop_at_vid))
+                    nextPageToken = null;
+                else
+                    nextPageToken = playlistItemsListResponse.NextPageToken;
             }
 
             Console.WriteLine("Total {0} videos, distinct {1}", vids.Count, vids.Distinct().Count());
@@ -124,7 +221,14 @@ namespace YoutubeAPI
                     .AppendLine();
             }
 
-            File.WriteAllText(string.Format(saveFolder + "\\{0}.html", channel.Snippet.Title)
+            string filename = string.Format(saveFolder + "\\{0}.html", channel.Snippet.Title);
+            int num = 1;
+            while (File.Exists(filename))
+            {
+                filename = string.Format(saveFolder + "\\{0}_{1}.html", channel.Snippet.Title, num++);
+            }
+
+            File.WriteAllText(filename
                              ,string.Format(Resources.body_template, channel.Id, channel.Snippet.Title, htmlpage.ToString()));
 
             Console.WriteLine((DateTime.Now - begin).TotalSeconds);
@@ -149,6 +253,34 @@ namespace YoutubeAPI
             var playlistItemsListResponse = playlistItemsListRequest.Execute();
 
             return playlistItemsListResponse.Items;//.Select(p => p.Id + "\t" + p.Statistics.ViewCount + "\t" + p.Snippet.Title);
+        }
+
+        private void GetVidsTitle_Wrapper(string[] vids)
+        {
+            List<Task> tasklist = new List<Task>();
+            foreach (var vidpart in vids.Chunkify(50))
+            {
+                tasklist.Add(
+                    Task.Factory.StartNew(list => GetVidsInfoTitle((IEnumerable<string>)list), vidpart)
+                        .ContinueWith(t => completeGetVidInfo(t.Result), TaskScheduler.Current)
+                    );
+            }
+
+            Task.WaitAll(tasklist.ToArray());
+
+            File.WriteAllText("a.txt", string.Join("\r\n", vidInfos.Select(v => string.Format("{0}\t{1}", v.Id, v.Snippet.Title))));
+        }
+        private IEnumerable<Video> GetVidsInfoTitle(IEnumerable<string> vids)
+        {
+            List<string> vidcount = new List<string>();
+
+            var playlistItemsListRequest = youtubeService.Videos.List("snippet");
+            playlistItemsListRequest.Id = string.Join(",", vids);
+
+            // Retrieve the list of videos uploaded to the authenticated user's channel.
+            var playlistItemsListResponse = playlistItemsListRequest.Execute();
+
+            return playlistItemsListResponse.Items;
         }
 
         private void completeGetVidInfo(IEnumerable<Video> vids)
@@ -182,5 +314,15 @@ namespace YoutubeAPI
                 return null;
             }
         }
+    }
+
+    class Channel
+    {
+        public string channelId { get; set; }
+        public string title { get; set; }
+        public string thumbnail { get; set; }
+        public ulong videoCount { get; set; }
+        public ulong subscriberCount { get; set; }
+        public ulong viewCount { get; set; }
     }
 }
